@@ -1,0 +1,13 @@
+downsizing tests on aliased sprites with gradients:
+
+my goal was to find the downscaling method that didn't introduce new colours or compression artifacts into the image while keeping an even distribution of colours in a gradient going across long 4-pixel passages.
+
+bilinear is the worst and compresses images like they're meant for facebook. bad quality, horrendous compression.
+
+bicubic does the job well but divides the gradients in uneven ways while losing a lot of the original colours in the gradient. okay quality, good compression.
+
+supersampling is the best mix of disregarding unneeded gradient colours while keeping the gradients evenly distributed. no visible compression artifacts. good quality, good compression.
+
+fant is good at keeping more colours and compressing in un-noticable ways, but it's not as even with downsized gradients. good quality, okay compression.
+
+nearest neighbour squishes everything together to try and keep all the quality it can in a small resolution but it uses the most colours to do it. for clean-looking pixels this is the 2nd worst option. bad quality, bad compression.

@@ -1,0 +1,47 @@
+#this is to sanitise metadata that has unusual characters in it where the desired character and the extra make-up characters are displayed at the same time
+#this is thanks to DPStokesNZ (https://github.com/DPStokesNZ) who wrote this patch for this issue in the official eyeD3 github repo:
+#https://github.com/nicfit/eyeD3/issues/342
+#I've recently stumbled across ID3 tags that contain characters in the artist, title and/or album name after a padding byte. Whilst this is cleary an issue with the creation of the tag information in the first place, I'm lead to believe that it is common practice to ignore any such characters, however eyeD3 merely strips the padding characters and shows both the desired characters and the extra characters. Given that other ID3 tag display software shows only the desired characters, I would suggest that eyeD3 be amended to behave similarly, by splitting the retrieved tag characters on b"\x00". [patch file inserted here] and returning the first item in the resulting list.
+
+#--- git/eyeD3/src/eyed3/id3/tag.py	2019-10-02 07:32:11.456192072 +1000
+#+++ tag.py	2019-10-02 07:49:03.895868908 +1000
+#@@ -134,18 +134,19 @@ class Tag(core.Tag):
+         # v1.0 is implied until a v1.1 feature is recognized.
+         self.version = ID3_V1_0
+ 
+         STRIP_CHARS = string.whitespace.encode("latin1") + b"\x00"
+         title = tag_data[3:33].strip(STRIP_CHARS)
+         STRIP_CHARS = string.whitespace.encode("latin1") 
+         PAD_CHAR = b"\x00"
+         title = tag_data[3:33].strip(STRIP_CHARS).split(PAD_CHAR)[0]
+         log.debug("Title: %s" % title)
+         if title:
+             self.title = str(title, v1_enc)
+ 
+         artist = tag_data[33:63].strip(STRIP_CHARS)
+         artist = tag_data[33:63].strip(STRIP_CHARS).split(PAD_CHAR)[0]
+         log.debug("Artist: %s" % artist)
+         if artist:
+             self.artist = str(artist, v1_enc)
+ 
+         album = tag_data[63:93].strip(STRIP_CHARS)
+         album = tag_data[63:93].strip(STRIP_CHARS).split(PAD_CHAR)[0]
+         log.debug("Album: %s" % album)
+         if album:
+             self.album = str(album, v1_enc)
+#@@ -162,13 +163,13 @@ class Tag(core.Tag):
+             pass
+ 
+         # Can't use STRIP_CHARS here, since the final byte is numeric
+         comment = tag_data[97:127].rstrip(b"\x00")
+         comment = tag_data[97:127].rstrip(PAD_CHAR)
+         # Track numbers stuffed in the comment field is what makes v1.1
+         if comment:
+             if (len(comment) >= 2 and
+                     # Python the slices (the chars), so this is really
+                     # comment[2]       and        comment[-1]
+                     comment[-2:-1] == b"\x00" and comment[-1:] != b"\x00"):
+                     comment[-2:-1] == PAD_CHAR and comment[-1:] != PAD_CHAR):
+                 log.debug("Track Num found, setting version to v1.1")
+                 self.version = ID3_V1_1
+ 
